@@ -32,10 +32,11 @@ public class BookService {
                 .switchIfEmpty(Mono.error(new BookNotFoundException(id)))
                 .flatMap(existing -> {
                     existing.setTitle(book.getTitle());
-                    existing.setAuthor(book.getAuthor());
+                    existing.setAuthorId(book.getAuthorId()); // ✅ Updated line
                     return bookRepository.save(existing);
                 });
     }
+
 
     public Mono<Void> deleteBook(String id) {
         return bookRepository.deleteById(id);

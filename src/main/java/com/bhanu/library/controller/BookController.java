@@ -24,6 +24,8 @@ public class BookController {
         return bookService.getAllBooks();
     }
 
+
+
     @GetMapping("/{id}")
     public Mono<Book> getBookById(@PathVariable String id) {
         return bookService.getBookById(id);
@@ -38,4 +40,5 @@ public class BookController {
     public Mono<Void> deleteBook(@PathVariable String id) {
         return bookService.deleteBook(id);
     }
+
 }
