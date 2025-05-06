@@ -34,7 +34,6 @@ public class AuthorController {
         return authorRepository.findById(id)
                 .flatMap(existingAuthor -> {
                     existingAuthor.setName(updatedAuthor.getName());
-                    existingAuthor.setBio(updatedAuthor.getBio());
                     return authorRepository.save(existingAuthor);
                 });
     }

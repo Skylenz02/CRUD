@@ -1,5 +1,7 @@
 package com.bhanu.library.controller;
 
+import com.bhanu.library.dto.BookRequest;
+import com.bhanu.library.dto.BookResponse;
 import com.bhanu.library.model.Book;
 import com.bhanu.library.service.BookService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,15 +17,23 @@ public class BookController {
     private BookService bookService;
 
     @PostMapping
-    public Mono<Book> createBook(@RequestBody Book book) {
-        return bookService.createBook(book);
+    public Mono<Book> createBook(@RequestBody BookRequest bookRequest) {
+        return bookService.createBook(bookRequest);
     }
 
     @GetMapping
-    public Flux<Book> getAllBooks() {
+    public Flux<BookResponse> getAllBooks() {
         return bookService.getAllBooks();
     }
+    @GetMapping("/authors/name/{authorName}")
+    public Flux<BookResponse> getBooksByAuthorName(@PathVariable String authorName) {
+        return bookService.getBooksByAuthorName(authorName);
+    }
 
+    @GetMapping("/genre/{genre}")
+    public Flux<BookResponse> getBooksByGenre(@PathVariable String genre) {
+        return bookService.getBooksByGenre(genre);
+    }
 
 
     @GetMapping("/{id}")
