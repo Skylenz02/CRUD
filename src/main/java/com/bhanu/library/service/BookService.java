@@ -2,6 +2,7 @@ package com.bhanu.library.service;
 
 import com.bhanu.library.dto.BookRequest;
 import com.bhanu.library.dto.BookResponse;
+import com.bhanu.library.dto.GenreStatsResponse;
 import com.bhanu.library.exception.BookNotFoundException;
 import com.bhanu.library.model.Author;
 import com.bhanu.library.model.Book;
@@ -39,12 +40,13 @@ public class BookService {
                                 .flatMap(genre -> {
                                     Book book = new Book();
                                     book.setTitle(bookRequest.getTitle());
-                                    book.setGenre(genre.getName()); // storing name, not ID
-                                    book.setAuthorId(author.getId()); // storing author's ID
+                                    book.setGenre(genre.getName());
+                                    book.setAuthorId(author.getId());
                                     return bookRepository.save(book);
                                 })
                 );
     }
+
     public Mono<BookResponse> mapToBookResponse(Book book) {
         return authorRepository.findById(book.getAuthorId())
                 .map(author -> new BookResponse(
@@ -59,6 +61,7 @@ public class BookService {
         return bookRepository.findAll()
                 .flatMap(this::mapToBookResponse);
     }
+
     public Flux<BookResponse> getBooksByAuthorName(String authorName) {
         return authorRepository.findByName(authorName)
                 .doOnNext(author -> System.out.println("Author ID found: " + author.getId()))
@@ -89,5 +92,9 @@ public class BookService {
 
     public Mono<Void> deleteBook(String id) {
         return bookRepository.deleteById(id);
+    }
+
+    public Flux<GenreStatsResponse> getGenreStatistics() {
+        return bookRepository.getGenreStats();
     }
 }

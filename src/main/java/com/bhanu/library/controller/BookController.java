@@ -2,6 +2,7 @@ package com.bhanu.library.controller;
 
 import com.bhanu.library.dto.BookRequest;
 import com.bhanu.library.dto.BookResponse;
+import com.bhanu.library.dto.GenreStatsResponse;
 import com.bhanu.library.model.Book;
 import com.bhanu.library.service.BookService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +50,11 @@ public class BookController {
     @DeleteMapping("/{id}")
     public Mono<Void> deleteBook(@PathVariable String id) {
         return bookService.deleteBook(id);
+    }
+
+    @GetMapping("/stats/genre")
+    public Flux<GenreStatsResponse> getGenreStats() {
+        return bookService.getGenreStatistics();
     }
 
 }
