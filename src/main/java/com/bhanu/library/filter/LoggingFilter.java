@@ -1,5 +1,7 @@
 package com.bhanu.library.filter;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -11,10 +13,12 @@ import reactor.core.publisher.Mono;
 @Order(1)
 public class LoggingFilter implements WebFilter {
 
+    private static final Logger log = LoggerFactory.getLogger(LoggingFilter.class);
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        System.out.println("📥 " + exchange.getRequest().getMethod() + " " + exchange.getRequest().getPath());
+        log.info("📥 " + exchange.getRequest().getMethod() + " " + exchange.getRequest().getPath());
         return chain.filter(exchange)
-                .doOnSuccess(done -> System.out.println("📤 Response sent for: " + exchange.getRequest().getPath()));
+                .doOnSuccess(done -> log.info("📤 Response sent for: " + exchange.getRequest().getPath()));
     }
 }

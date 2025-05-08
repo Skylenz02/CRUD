@@ -11,9 +11,12 @@ import com.bhanu.library.repository.AuthorRepository;
 import com.bhanu.library.repository.BookRepository;
 import com.bhanu.library.repository.GenreRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.time.Duration;
 
 @Service
 public class BookService {
@@ -27,24 +30,39 @@ public class BookService {
     @Autowired
     private GenreRepository genreRepository;
 
+    @Autowired
+    private ReactiveRedisTemplate<String, Book> redisTemplate;
+
+    public BookService(BookRepository bookRepository,
+                       AuthorRepository authorRepository,
+                       GenreRepository genreRepository,
+                       ReactiveRedisTemplate<String, Book> redisTemplate) {
+        this.bookRepository = bookRepository;
+        this.authorRepository = authorRepository;
+        this.genreRepository = genreRepository;
+        this.redisTemplate = redisTemplate;
+    }
+
+
     public Mono<Book> createBook(BookRequest bookRequest) {
-        return authorRepository.findByName(bookRequest.getAuthorName())
-                .switchIfEmpty(
-                        authorRepository.save(new Author(null, bookRequest.getAuthorName()))
-                )
-                .flatMap(author ->
-                        genreRepository.findByName(bookRequest.getGenre())
-                                .switchIfEmpty(
-                                        genreRepository.save(new Genre(null, bookRequest.getGenre()))
-                                )
-                                .flatMap(genre -> {
-                                    Book book = new Book();
-                                    book.setTitle(bookRequest.getTitle());
-                                    book.setGenre(genre.getName());
-                                    book.setAuthorId(author.getId());
-                                    return bookRepository.save(book);
-                                })
-                );
+        Mono<Author> authorMono = authorRepository.findByName(bookRequest.getAuthorName())
+                .switchIfEmpty(authorRepository.save(new Author(null, bookRequest.getAuthorName())));
+
+        Mono<Genre> genreMono = genreRepository.findByName(bookRequest.getGenre())
+                .switchIfEmpty(genreRepository.save(new Genre(null, bookRequest.getGenre())));
+
+        return Mono.zip(authorMono, genreMono)
+                .flatMap(tuple -> {
+                    Author author = tuple.getT1();
+                    Genre genre = tuple.getT2();
+
+                    Book book = new Book();
+                    book.setTitle(bookRequest.getTitle());
+                    book.setGenre(genre.getName());
+                    book.setAuthorId(author.getId());
+
+                    return bookRepository.save(book);
+                });
     }
 
     public Mono<BookResponse> mapToBookResponse(Book book) {
@@ -58,8 +76,7 @@ public class BookService {
     }
 
     public Flux<BookResponse> getAllBooks() {
-        return bookRepository.findAll()
-                .flatMap(this::mapToBookResponse);
+        return bookRepository.findAll().flatMap(this::mapToBookResponse);
     }
 
     public Flux<BookResponse> getBooksByAuthorName(String authorName) {
@@ -75,23 +92,40 @@ public class BookService {
     }
 
     public Mono<Book> getBookById(String id) {
-        return bookRepository.findById(id)
-                .switchIfEmpty(Mono.error(new BookNotFoundException(id)));
+        String key = "book::" + id;
+
+        return redisTemplate.opsForValue().get(key)
+                .switchIfEmpty(
+                        bookRepository.findById(id)
+                                .switchIfEmpty(Mono.error(new BookNotFoundException(id)))
+                                .flatMap(book -> redisTemplate.opsForValue()
+                                        .set(key, book, Duration.ofMinutes(10))
+                                        .thenReturn(book)
+                                )
+                );
     }
 
     public Mono<Book> updateBook(String id, Book book) {
+        String key = "book::" + id;
+
         return bookRepository.findById(id)
                 .switchIfEmpty(Mono.error(new BookNotFoundException(id)))
                 .flatMap(existing -> {
                     existing.setTitle(book.getTitle());
                     existing.setAuthorId(book.getAuthorId());
                     existing.setGenre(book.getGenre());
-                    return bookRepository.save(existing);
+
+                    return bookRepository.save(existing)
+                            .flatMap(updatedBook ->
+                                    redisTemplate.opsForValue().set(key, updatedBook, Duration.ofMinutes(10))
+                                            .thenReturn(updatedBook)
+                            );
                 });
     }
 
     public Mono<Void> deleteBook(String id) {
-        return bookRepository.deleteById(id);
+        String key = "book::" + id;
+        return redisTemplate.delete(key).then(bookRepository.deleteById(id));
     }
 
     public Flux<GenreStatsResponse> getGenreStatistics() {
