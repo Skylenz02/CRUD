@@ -6,9 +6,15 @@ import com.bhanu.library.dto.GenreStatsResponse;
 import com.bhanu.library.model.Book;
 import com.bhanu.library.service.BookService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/books")
@@ -47,9 +53,16 @@ public class BookController {
         return bookService.updateBook(id, book);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public Mono<Void> deleteBook(@PathVariable String id) {
-        return bookService.deleteBook(id);
+    public Mono<ResponseEntity<Map<String, Serializable>>> deleteBook(@PathVariable String id) {
+        return bookService.deleteBook(id)
+                .thenReturn(
+                        ResponseEntity.ok(Map.of(
+                                "message", "Book deleted successfully",
+                                "timestamp", LocalDateTime.now()
+                        ))
+                );
     }
 
     @GetMapping("/stats/genre")

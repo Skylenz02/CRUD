@@ -27,7 +27,7 @@ public class AuthServiceImpl implements AuthService {
     public Mono<String> login(User user) {
         return userRepository.findByUsername(user.getUsername())
                 .filter(dbUser -> passwordEncoder.matches(user.getPassword(), dbUser.getPassword()))
-                .map(dbUser -> jwtUtil.generateToken(dbUser.getUsername()))
+                .map(dbUser -> jwtUtil.generateToken(user.getUsername(), user.getRole()))
                 .switchIfEmpty(Mono.error(new RuntimeException("Invalid credentials")));
     }
 }

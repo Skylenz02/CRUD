@@ -15,11 +15,12 @@ public class JwtUtil {
     private final String SECRET_KEY = "mySuperSecureJwtSecretKeyFor2025!!";
     private final SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
 
-    public String generateToken(String username) {
+    public String generateToken(String username, String role) {
         return Jwts.builder()
                 .setSubject(username)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hour
+                .claim("role", role) // ✅ include role
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 3600000))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -41,4 +42,9 @@ public class JwtUtil {
             return false;
         }
     }
+
+    public SecretKey getKey() {
+        return this.key;
+    }
+
 }
