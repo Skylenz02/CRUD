@@ -1,28 +1,47 @@
 package com.bhanu.library.exception;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import java.util.HashMap;
-import java.util.Map;
+import reactor.core.publisher.Mono;
+
+import java.time.LocalDateTime;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BookNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleBookNotFound(BookNotFoundException ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("error", "Not Found");
-        response.put("message", ex.getMessage());
-        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    public Mono<ResponseEntity<ErrorResponse>> handleBookNotFound(BookNotFoundException ex) {
+        ErrorResponse response = new ErrorResponse(
+                "Not Found",
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(response));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public Mono<ResponseEntity<ErrorResponse>> handleAccessDenied(AccessDeniedException ex) {
+        ErrorResponse response = new ErrorResponse(
+                "Forbidden",
+                "You don't have permission to perform this action.",
+                LocalDateTime.now()
+        );
+        return Mono.just(ResponseEntity.status(HttpStatus.FORBIDDEN).body(response));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("error", "Internal Server Error");
-        response.put("message", ex.getMessage());
-        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+    public Mono<ResponseEntity<ErrorResponse>> handleGenericException(Exception ex) {
+        log.error("Unexpected error occurred: ", ex);
+        ErrorResponse response = new ErrorResponse(
+                "Internal Server Error",
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response));
     }
 }
